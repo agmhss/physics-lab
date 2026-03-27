@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logic Gates | தருக்க வாயில்கள்</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; }
+        .header-bar { background-color: #003366; color: white; padding: 15px 0; }
+        .circuit-board {
+            background-color: #2c3e50;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .gate-box {
+            background-color: #ecf0f1;
+            border: 4px solid #34495e;
+            border-radius: 10px;
+            padding: 30px 40px;
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 0 30px;
+            position: relative;
+        }
+        .wire-horizontal { height: 4px; background-color: #7f8c8d; width: 60px; }
+        .led-bulb {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #555;
+            border: 3px solid #333;
+            transition: all 0.2s ease;
+        }
+        .led-on { background-color: #2ecc71; box-shadow: 0 0 20px 5px rgba(46, 204, 113, 0.6); border-color: #27ae60; }
+        .led-off { background-color: #e74c3c; border-color: #c0392b; }
+        .input-btn { width: 60px; font-size: 1.5rem; font-weight: bold; }
+        .control-panel { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .truth-table th, .truth-table td { text-align: center; font-size: 1.2rem; }
+        .active-row { background-color: #fff3cd !important; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="header-bar text-center shadow-sm mb-4">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a href="physicslab.html" class="btn btn-outline-light btn-sm" data-ta="< பின்செல்ல" data-en="< Back"> < பின்செல்ல </a>
+            <h3 class="m-0" data-ta="தருக்க வாயில்கள் (Logic Gates)" data-en="Logic Gates Simulator">தருக்க வாயில்கள் (Logic Gates)</h3>
+            <button id="langToggleBtn" class="btn btn-warning btn-sm fw-bold" onclick="toggleLanguage()">English</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-7">
+                <div class="circuit-board shadow">
+                    <h5 class="text-white mb-5" data-ta="மின்சுற்று (Circuit)" data-en="Circuit">மின்சுற்று (Circuit)</h5>
+                    
+                    <div class="d-flex align-items-center justify-content-center w-100">
+                        <div class="d-flex flex-column justify-content-center gap-4">
+                            <div class="d-flex align-items-center">
+                                <span class="text-white me-2 fs-4">A</span>
+                                <button id="btnA" class="btn btn-outline-light input-btn" onclick="toggleInput('A')">0</button>
+                                <div class="wire-horizontal"></div>
+                            </div>
+                            <div class="d-flex align-items-center" id="inputBContainer">
+                                <span class="text-white me-2 fs-4">B</span>
+                                <button id="btnB" class="btn btn-outline-light input-btn" onclick="toggleInput('B')">0</button>
+                                <div class="wire-horizontal"></div>
+                            </div>
+                        </div>
+
+                        <div class="gate-box shadow-sm" id="gateSymbol">AND</div>
+
+                        <div class="d-flex align-items-center">
+                            <div class="wire-horizontal"></div>
+                            <div class="ms-3 text-center">
+                                <div id="outputLed" class="led-bulb led-off mb-2"></div>
+                                <span class="text-white fs-4 fw-bold">Y = <span id="outputValue">0</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="control-panel">
+                    <h4 class="mb-3 border-bottom pb-2" data-ta="வாயிலைத் தேர்ந்தெடுக்கவும்" data-en="Select Gate">வாயிலைத் தேர்ந்தெடுக்கவும்</h4>
+                    
+                    <select id="gateSelector" class="form-select form-select-lg mb-4" onchange="updateGate()">
+                        <option value="AND">AND Gate (மற்றும்)</option>
+                        <option value="OR">OR Gate (அல்லது)</option>
+                        <option value="NOT">NOT Gate (இல்லை)</option>
+                    </select>
+
+                    <h5 class="mb-3 border-bottom pb-2" data-ta="உண்மை அட்டவணை" data-en="Truth Table">உண்மை அட்டவணை</h5>
+                    
+                    <table class="table table-bordered table-striped truth-table" id="truthTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>A</th>
+                                <th id="thB">B</th>
+                                <th>Y</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let valA = 0;
+        let valB = 0;
+        let currentGate = 'AND';
+
+        const truthTables = {
+            'AND': [ {A:0, B:0, Y:0}, {A:0, B:1, Y:0}, {A:1, B:0, Y:0}, {A:1, B:1, Y:1} ],
+            'OR':  [ {A:0, B:0, Y:0}, {A:0, B:1, Y:1}, {A:1, B:0, Y:1}, {A:1, B:1, Y:1} ],
+            'NOT': [ {A:0, Y:1}, {A:1, Y:0} ]
+        };
+
+        function toggleInput(input) {
+            if (input === 'A') {
+                valA = valA === 0 ? 1 : 0;
+                document.getElementById('btnA').innerText = valA;
+                document.getElementById('btnA').className = valA ? 'btn btn-warning input-btn text-dark' : 'btn btn-outline-light input-btn';
+            } else {
+                valB = valB === 0 ? 1 : 0;
+                document.getElementById('btnB').innerText = valB;
+                document.getElementById('btnB').className = valB ? 'btn btn-warning input-btn text-dark' : 'btn btn-outline-light input-btn';
+            }
+            calculateOutput();
+        }
+
+        function updateGate() {
+            currentGate = document.getElementById('gateSelector').value;
+            document.getElementById('gateSymbol').innerText = currentGate;
+            
+            // Show/Hide Input B for NOT gate
+            if (currentGate === 'NOT') {
+                document.getElementById('inputBContainer').style.visibility = 'hidden';
+                document.getElementById('thB').style.display = 'none';
+            } else {
+                document.getElementById('inputBContainer').style.visibility = 'visible';
+                document.getElementById('thB').style.display = 'table-cell';
+            }
+            
+            buildTruthTable();
+            calculateOutput();
+        }
+
+        function calculateOutput() {
+            let Y = 0;
+            if (currentGate === 'AND') Y = valA & valB;
+            else if (currentGate === 'OR') Y = valA | valB;
+            else if (currentGate === 'NOT') Y = valA === 0 ? 1 : 0;
+
+            // Update LED
+            document.getElementById('outputValue').innerText = Y;
+            let led = document.getElementById('outputLed');
+            if (Y === 1) {
+                led.className = 'led-bulb led-on';
+            } else {
+                led.className = 'led-bulb led-off';
+            }
+
+            highlightTableRow(Y);
+        }
+
+        function buildTruthTable() {
+            let tbody = document.getElementById('tableBody');
+            tbody.innerHTML = ''; // clear existing
+            
+            let data = truthTables[currentGate];
+            data.forEach((row, index) => {
+                let tr = document.createElement('tr');
+                tr.id = `row-${index}`;
+                
+                let tdA = document.createElement('td');
+                tdA.innerText = row.A;
+                tr.appendChild(tdA);
+
+                if (currentGate !== 'NOT') {
+                    let tdB = document.createElement('td');
+                    tdB.innerText = row.B;
+                    tr.appendChild(tdB);
+                }
+
+                let tdY = document.createElement('td');
+                tdY.innerText = row.Y;
+                tr.appendChild(tdY);
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        function highlightTableRow(Y) {
+            // Remove previous highlights
+            let rows = document.getElementById('tableBody').getElementsByTagName('tr');
+            for(let r of rows) { r.classList.remove('active-row'); }
+
+            // Find matching row
+            let rowIndex = 0;
+            if (currentGate === 'NOT') {
+                rowIndex = valA === 0 ? 0 : 1;
+            } else {
+                if (valA === 0 && valB === 0) rowIndex = 0;
+                else if (valA === 0 && valB === 1) rowIndex = 1;
+                else if (valA === 1 && valB === 0) rowIndex = 2;
+                else if (valA === 1 && valB === 1) rowIndex = 3;
+            }
+            
+            document.getElementById(`row-${rowIndex}`).classList.add('active-row');
+        }
+
+        // Language Toggle Logic
+        let currentLang = 'ta';
+        function toggleLanguage() {
+            currentLang = currentLang === 'ta' ? 'en' : 'ta';
+            document.getElementById('langToggleBtn').innerText = currentLang === 'ta' ? 'English' : 'தமிழ்';
+            const elements = document.querySelectorAll('[data-ta]');
+            elements.forEach(el => { el.innerText = el.getAttribute(`data-${currentLang}`); });
+        }
+
+        // Initialize on load
+        updateGate();
+    </script>
+</body>
+</html>
