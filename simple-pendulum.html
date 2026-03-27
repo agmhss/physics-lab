@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Pendulum | தனி ஊசல்</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; }
+        .header-bar { background-color: #003366; color: white; padding: 15px 0; }
+        .canvas-container {
+            background-color: #ffffff;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        canvas {
+            background-color: #eef2f3;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            max-width: 100%;
+            height: auto;
+        }
+        .control-panel { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .reading-box { font-size: 1.2rem; font-weight: bold; color: #003366; }
+        .formula-box { background-color: #e9ecef; padding: 15px; border-radius: 8px; font-family: serif; font-size: 1.2rem; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div class="header-bar text-center shadow-sm mb-4">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a href="physicslab.html" class="btn btn-outline-light btn-sm" data-ta="< பின்செல்ல" data-en="< Back"> < பின்செல்ல </a>
+            <h3 class="m-0" data-ta="தனி ஊசல் (Simple Pendulum)" data-en="Simple Pendulum Simulator">தனி ஊசல் (Simple Pendulum)</h3>
+            <button id="langToggleBtn" class="btn btn-warning btn-sm fw-bold" onclick="toggleLanguage()">English</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-7">
+                <div class="canvas-container">
+                    <h5 class="mb-3 text-secondary" data-ta="ஊசல் இயக்கம் (Pendulum Motion)" data-en="Pendulum Motion">ஊசல் இயக்கம் (Pendulum Motion)</h5>
+                    <canvas id="pendulumCanvas" width="500" height="500"></canvas>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="control-panel">
+                    <h4 class="mb-3 border-bottom pb-2" data-ta="கட்டுப்பாடுகள்" data-en="Controls">கட்டுப்பாடுகள்</h4>
+                    
+                    <label class="form-label fw-bold" data-ta="கயிற்றின் நீளம் (L) மீட்டரில்" data-en="Length of String (L) in meters">கயிற்றின் நீளம் (L) மீட்டரில்</label>
+                    <input type="range" class="form-range" id="lengthSlider" min="0.2" max="2.0" step="0.1" value="1.0">
+                    <div class="d-flex justify-content-between mb-4 text-muted small">
+                        <span>0.2 m</span>
+                        <span class="reading-box text-primary"><span id="lengthVal">1.0</span> m</span>
+                        <span>2.0 m</span>
+                    </div>
+
+                    <label class="form-label fw-bold" data-ta="புவியீர்ப்பு முடுக்கம் (g) m/s²" data-en="Gravity (g) in m/s²">புவியீர்ப்பு முடுக்கம் (g) m/s²</label>
+                    <input type="range" class="form-range" id="gravitySlider" min="1.6" max="25.0" step="0.1" value="9.8">
+                    <div class="d-flex justify-content-between mb-2 text-muted small">
+                        <span data-ta="நிலவு (1.6)" data-en="Moon (1.6)">நிலவு (1.6)</span>
+                        <span class="reading-box text-success"><span id="gravityVal">9.8</span> m/s²</span>
+                        <span data-ta="வியாழன் (25)" data-en="Jupiter (25)">வியாழன் (25)</span>
+                    </div>
+                    <div class="text-center mb-4"><span class="badge bg-secondary" id="planetBadge" data-ta="பூமி" data-en="Earth">பூமி</span></div>
+
+                    <h5 class="mt-4 border-bottom pb-2" data-ta="முடிவுகள்" data-en="Results">முடிவுகள்</h5>
+                    
+                    <div class="formula-box mb-3">
+                        T = 2π &radic;(L / g)
+                    </div>
+
+                    <p class="mb-1" data-ta="அலைவுக்காலம் (Time Period - T):" data-en="Time Period (T):">அலைவுக்காலம் (Time Period - T):</p>
+                    <h3 class="text-danger mb-3"><span id="timeVal">2.01</span> <span class="fs-5" data-ta="வினாடிகள்" data-en="Seconds">வினாடிகள்</span></h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('pendulumCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const lengthSlider = document.getElementById('lengthSlider');
+        const gravitySlider = document.getElementById('gravitySlider');
+        
+        // Physics variables
+        let L = parseFloat(lengthSlider.value); // Length in meters
+        let g = parseFloat(gravitySlider.value); // Gravity in m/s^2
+        const thetaMax = Math.PI / 6; // Maximum swing angle (30 degrees)
+        
+        // Canvas geometry variables
+        const originX = canvas.width / 2;
+        const originY = 50;
+        const scale = 200; // 1 meter = 200 pixels
+        
+        // Animation variables
+        let animationTime = 0;
+        let lastTimestamp = 0;
+
+        function updateValues() {
+            L = parseFloat(lengthSlider.value);
+            g = parseFloat(gravitySlider.value);
+            
+            // Calculate Time Period (T = 2 * PI * sqrt(L/g))
+            let T = 2 * Math.PI * Math.sqrt(L / g);
+            
+            // Update UI
+            document.getElementById('lengthVal').innerText = L.toFixed(1);
+            document.getElementById('gravityVal').innerText = g.toFixed(1);
+            document.getElementById('timeVal').innerText = T.toFixed(2);
+
+            // Update Planet Badge based on gravity
+            let badge = document.getElementById('planetBadge');
+            if(g === 9.8) {
+                badge.innerText = currentLang === 'ta' ? "பூமி (Earth)" : "Earth";
+                badge.className = "badge bg-primary";
+            } else if (g < 4) {
+                badge.innerText = currentLang === 'ta' ? "நிலவு (Moon)" : "Moon";
+                badge.className = "badge bg-secondary";
+            } else if (g > 20) {
+                badge.innerText = currentLang === 'ta' ? "வியாழன் (Jupiter)" : "Jupiter";
+                badge.className = "badge bg-warning text-dark";
+            } else {
+                badge.innerText = currentLang === 'ta' ? "தனிப்பயன் (Custom)" : "Custom";
+                badge.className = "badge bg-info text-dark";
+            }
+        }
+
+        function drawPendulum(timestamp) {
+            // Calculate delta time for smooth animation
+            if (!lastTimestamp) lastTimestamp = timestamp;
+            let deltaTime = (timestamp - lastTimestamp) / 1000; // Convert ms to seconds
+            lastTimestamp = timestamp;
+            
+            animationTime += deltaTime;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Angular frequency (omega = sqrt(g/L))
+            let omega = Math.sqrt(g / L);
+            
+            // Current angle (theta = thetaMax * cos(omega * t))
+            let theta = thetaMax * Math.cos(omega * animationTime);
+            
+            // Length in pixels
+            let pixelLength = L * scale;
+            
+            // Calculate Bob (x, y) coordinates
+            let bobX = originX + pixelLength * Math.sin(theta);
+            let bobY = originY + pixelLength * Math.cos(theta);
+
+            // 1. Draw Pivot Support
+            ctx.beginPath();
+            ctx.moveTo(originX - 40, originY);
+            ctx.lineTo(originX + 40, originY);
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = '#2c3e50';
+            ctx.stroke();
+
+            // 2. Draw String
+            ctx.beginPath();
+            ctx.moveTo(originX, originY);
+            ctx.lineTo(bobX, bobY);
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#7f8c8d';
+            ctx.stroke();
+
+            // 3. Draw Bob (Metallic look)
+            let radius = 20;
+            let gradient = ctx.createRadialGradient(bobX - 5, bobY - 5, 2, bobX, bobY, radius);
+            gradient.addColorStop(0, '#bdc3c7');
+            gradient.addColorStop(1, '#7f8c8d');
+            
+            ctx.beginPath();
+            ctx.arc(bobX, bobY, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#2c3e50';
+            ctx.stroke();
+
+            // Request next frame
+            requestAnimationFrame(drawPendulum);
+        }
+
+        // Event Listeners for sliders
+        lengthSlider.addEventListener('input', updateValues);
+        gravitySlider.addEventListener('input', updateValues);
+
+        // Language Toggle Logic
+        let currentLang = 'ta';
+        function toggleLanguage() {
+            currentLang = currentLang === 'ta' ? 'en' : 'ta';
+            document.getElementById('langToggleBtn').innerText = currentLang === 'ta' ? 'English' : 'தமிழ்';
+            const elements = document.querySelectorAll('[data-ta]');
+            elements.forEach(el => { el.innerText = el.getAttribute(`data-${currentLang}`); });
+            updateValues(); // Update badge text immediately
+        }
+
+        // Initialize
+        updateValues();
+        requestAnimationFrame(drawPendulum);
+    </script>
+</body>
+  </html>
