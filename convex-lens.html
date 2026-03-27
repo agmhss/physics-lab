@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convex Lens | குவிலென்சு</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; }
+        .header-bar { background-color: #003366; color: white; padding: 15px 0; }
+        .canvas-container {
+            background-color: #ffffff;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+        canvas {
+            background-color: #eef2f3;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            max-width: 100%;
+            height: auto;
+        }
+        .control-panel { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .reading-box { font-size: 1.2rem; font-weight: bold; color: #003366; }
+        .badge-result { font-size: 1rem; padding: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="header-bar text-center shadow-sm mb-4">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a href="physicslab.html" class="btn btn-outline-light btn-sm" data-ta="< பின்செல்ல" data-en="< Back"> < பின்செல்ல </a>
+            <h3 class="m-0" data-ta="குவிலென்சு (Convex Lens)" data-en="Convex Lens Simulator">குவிலென்சு (Convex Lens)</h3>
+            <button id="langToggleBtn" class="btn btn-warning btn-sm fw-bold" onclick="toggleLanguage()">English</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="canvas-container shadow">
+                    <h5 class="mb-3 text-secondary" data-ta="கதிர் வரைபடம் (Ray Diagram)" data-en="Ray Diagram">கதிர் வரைபடம் (Ray Diagram)</h5>
+                    <canvas id="lensCanvas" width="800" height="400"></canvas>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="control-panel">
+                    <h4 class="mb-3 border-bottom pb-2" data-ta="கட்டுப்பாடுகள்" data-en="Controls">கட்டுப்பாடுகள்</h4>
+                    
+                    <label class="form-label fw-bold" data-ta="பொருள் தொலைவு (u)" data-en="Object Distance (u)">பொருள் தொலைவு (u)</label>
+                    <input type="range" class="form-range" id="uSlider" min="20" max="300" step="1" value="150">
+                    <div class="d-flex justify-content-between mb-3 text-muted small">
+                        <span>-20 cm</span>
+                        <span class="reading-box text-danger"><span id="uVal">-150</span> cm</span>
+                        <span>-300 cm</span>
+                    </div>
+
+                    <label class="form-label fw-bold" data-ta="குவியத் தொலைவு (f)" data-en="Focal Length (f)">குவியத் தொலைவு (f)</label>
+                    <input type="range" class="form-range" id="fSlider" min="50" max="150" step="1" value="100">
+                    <div class="d-flex justify-content-between mb-4 text-muted small">
+                        <span>50 cm</span>
+                        <span class="reading-box text-success"><span id="fVal">100</span> cm</span>
+                        <span>150 cm</span>
+                    </div>
+
+                    <h5 class="mt-4 border-bottom pb-2" data-ta="முடிவுகள்" data-en="Results">முடிவுகள்</h5>
+                    <p class="mb-1" data-ta="பிம்பத் தொலைவு (v):" data-en="Image Distance (v):">பிம்பத் தொலைவு (v):</p>
+                    <h4 class="text-primary mb-3"><span id="vVal">300</span> cm</h4>
+                    
+                    <div id="imageNature" class="badge badge-result bg-info text-white w-100 mb-2">
+                        Real & Inverted / மெய்ப் பிம்பம்
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('lensCanvas');
+        const ctx = canvas.getContext('2d');
+        const uSlider = document.getElementById('uSlider');
+        const fSlider = document.getElementById('fSlider');
+        
+        const cx = canvas.width / 2; // Optic center X
+        const cy = canvas.height / 2; // Optic center Y
+        const objHeight = 60;
+
+        function drawSimulator() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Get values
+            let u = -parseFloat(uSlider.value); // Object is on the left (negative convention)
+            let f = parseFloat(fSlider.value);
+            
+            // Lens Formula: 1/f = 1/v - 1/u => 1/v = 1/f + 1/u => v = (f * u) / (u + f)
+            let v = (f * u) / (u + f);
+            let m = v / u; // Magnification
+            let imgHeight = objHeight * m;
+
+            // Update UI Texts
+            document.getElementById('uVal').innerText = u;
+            document.getElementById('fVal').innerText = f;
+            document.getElementById('vVal').innerText = v === Infinity || v === -Infinity ? "Infinity" : v.toFixed(1);
+
+            let natureBadge = document.getElementById('imageNature');
+            if (v === Infinity || v === -Infinity) {
+                natureBadge.className = "badge badge-result bg-warning text-dark w-100 mb-2";
+                natureBadge.innerText = currentLang === 'ta' ? "ஈரிலாத் தொலைவில் (At Infinity)" : "Image at Infinity";
+            } else if (v > 0) {
+                natureBadge.className = "badge badge-result bg-primary text-white w-100 mb-2";
+                natureBadge.innerText = currentLang === 'ta' ? "மெய்ப் பிம்பம் (Real & Inverted)" : "Real & Inverted Image";
+            } else {
+                natureBadge.className = "badge badge-result bg-danger text-white w-100 mb-2";
+                natureBadge.innerText = currentLang === 'ta' ? "மாயப் பிம்பம் (Virtual & Erect)" : "Virtual & Erect Image";
+            }
+
+            // --- DRAWING ---
+            
+            // 1. Principal Axis
+            ctx.beginPath();
+            ctx.moveTo(0, cy);
+            ctx.lineTo(canvas.width, cy);
+            ctx.strokeStyle = "#7f8c8d";
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset dash
+
+            // 2. Convex Lens
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, 10, 120, 0, 0, 2 * Math.PI);
+            ctx.fillStyle = "rgba(173, 216, 230, 0.5)";
+            ctx.fill();
+            ctx.strokeStyle = "#2980b9";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 3. Focal Points (F1, 2F1, F2, 2F2)
+            drawPoint(cx - f, cy, "F1");
+            drawPoint(cx - 2*f, cy, "2F1");
+            drawPoint(cx + f, cy, "F2");
+            drawPoint(cx + 2*f, cy, "2F2");
+
+            // 4. Object
+            drawArrow(cx + u, cy, cx + u, cy - objHeight, "#e74c3c", "O");
+
+            // 5. Rays and Image
+            if (v !== Infinity && v !== -Infinity) {
+                // Image
+                drawArrow(cx + v, cy, cx + v, cy - imgHeight, "#27ae60", "I");
+
+                ctx.lineWidth = 1.5;
+                // Ray 1: Parallel to Principal Focus
+                ctx.beginPath();
+                ctx.moveTo(cx + u, cy - objHeight);
+                ctx.lineTo(cx, cy - objHeight); // to lens
+                ctx.strokeStyle = "#e67e22";
+                ctx.stroke();
+                
+                // Ray 1 passing through F2 (or diverging if virtual)
+                ctx.beginPath();
+                ctx.moveTo(cx, cy - objHeight);
+                // Extending the ray line far enough
+                let ray1EndX = v > 0 ? cx + v + 200 : cx - 400; 
+                let slope1 = (cy - imgHeight - (cy - objHeight)) / v;
+                let ray1EndY = (cy - objHeight) + slope1 * (ray1EndX - cx);
+                ctx.lineTo(ray1EndX, ray1EndY);
+                ctx.stroke();
+
+                // Ray 2: Through Optic Center
+                ctx.beginPath();
+                ctx.moveTo(cx + u, cy - objHeight);
+                let ray2EndX = v > 0 ? cx + v + 200 : cx - 400;
+                let slope2 = (cy - imgHeight - (cy - objHeight)) / (v - u);
+                let ray2EndY = (cy - objHeight) + slope2 * (ray2EndX - (cx + u));
+                ctx.lineTo(ray2EndX, ray2EndY);
+                ctx.strokeStyle = "#8e44ad";
+                ctx.stroke();
+
+                // Draw dashed lines for virtual image traced backwards
+                if (v < 0) {
+                    ctx.setLineDash([5, 5]);
+                    ctx.beginPath();
+                    ctx.moveTo(cx, cy - objHeight);
+                    ctx.lineTo(cx + v, cy - imgHeight);
+                    ctx.strokeStyle = "#e67e22";
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.moveTo(cx + u, cy - objHeight);
+                    ctx.lineTo(cx + v, cy - imgHeight);
+                    ctx.strokeStyle = "#8e44ad";
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+        }
+
+        // Helper to draw F points
+        function drawPoint(x, y, label) {
+            ctx.beginPath();
+            ctx.arc(x, y, 3, 0, 2 * Math.PI);
+            ctx.fillStyle = "#34495e";
+            ctx.fill();
+            ctx.font = "12px Arial";
+            ctx.fillText(label, x - 5, y + 20);
+        }
+
+        // Helper to draw object/image arrows
+        function drawArrow(fromx, fromy, tox, toy, color, label) {
+            const headlen = 10;
+            const angle = Math.atan2(toy - fromy, tox - fromx);
+            ctx.beginPath();
+            ctx.moveTo(fromx, fromy);
+            ctx.lineTo(tox, toy);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            
+            // Arrowhead
+            ctx.beginPath();
+            ctx.moveTo(tox, toy);
+            ctx.lineTo(tox - headlen * Math.cos(angle - Math.PI / 6), toy - headlen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(tox - headlen * Math.cos(angle + Math.PI / 6), toy - headlen * Math.sin(angle + Math.PI / 6));
+            ctx.fillStyle = color;
+            ctx.fill();
+
+            ctx.fillStyle = color;
+            ctx.font = "bold 14px Arial";
+            ctx.fillText(label, tox - 5, toy > fromy ? toy + 15 : toy - 10);
+        }
+
+        // Event Listeners
+        uSlider.addEventListener('input', drawSimulator);
+        fSlider.addEventListener('input', drawSimulator);
+
+        // Language Toggle Logic
+        let currentLang = 'ta';
+        function toggleLanguage() {
+            currentLang = currentLang === 'ta' ? 'en' : 'ta';
+            document.getElementById('langToggleBtn').innerText = currentLang === 'ta' ? 'English' : 'தமிழ்';
+            const elements = document.querySelectorAll('[data-ta]');
+            elements.forEach(el => { el.innerText = el.getAttribute(`data-${currentLang}`); });
+            drawSimulator(); // Redraw canvas to update dynamic nature badge text
+        }
+
+        // Initial Draw
+        drawSimulator();
+    </script>
+</body>
+</html>
