@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spectrometer | நிறமாலைமானி</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; }
+        .header-bar { background-color: #003366; color: white; padding: 15px 0; }
+        .canvas-container {
+            background-color: #ffffff;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        canvas {
+            background-color: #1a1a2e; /* Dark background to make light rays pop */
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            max-width: 100%;
+            height: auto;
+        }
+        .control-panel { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .reading-box { font-size: 1.2rem; font-weight: bold; color: #003366; }
+        .formula-box { background-color: #e9ecef; padding: 15px; border-radius: 8px; font-family: serif; font-size: 1.1rem; text-align: center; margin-bottom: 15px;}
+    </style>
+</head>
+<body>
+
+    <div class="header-bar text-center shadow-sm mb-4">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a href="physicslab.html" class="btn btn-outline-light btn-sm" data-ta="< பின்செல்ல" data-en="< Back"> < பின்செல்ல </a>
+            <h3 class="m-0" data-ta="நிறமாலைமானி (Spectrometer)" data-en="Spectrometer Simulator">நிறமாலைமானி (Spectrometer)</h3>
+            <button id="langToggleBtn" class="btn btn-warning btn-sm fw-bold" onclick="toggleLanguage()">English</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="canvas-container">
+                    <h5 class="mb-3 text-secondary" data-ta="முப்பட்டகத்தின் வழியே ஒளிவிலகல்" data-en="Refraction through a Prism">முப்பட்டகத்தின் வழியே ஒளிவிலகல்</h5>
+                    <canvas id="prismCanvas" width="700" height="400"></canvas>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="control-panel">
+                    <h4 class="mb-3 border-bottom pb-2" data-ta="கட்டுப்பாடுகள்" data-en="Controls">கட்டுப்பாடுகள்</h4>
+                    
+                    <label class="form-label fw-bold" data-ta="படுகோணம் (Angle of Incidence - i)" data-en="Angle of Incidence (i)">படுகோணம் (Angle of Incidence - i)</label>
+                    <input type="range" class="form-range" id="angleISlider" min="30" max="60" step="1" value="45">
+                    <div class="d-flex justify-content-between mb-4 text-muted small">
+                        <span>30°</span>
+                        <span class="reading-box text-warning"><span id="angleIVal">45</span>°</span>
+                        <span>60°</span>
+                    </div>
+
+                    <label class="form-label fw-bold" data-ta="ஒளிவிலகல் எண் (Refractive Index - μ)" data-en="Refractive Index (μ)">ஒளிவிலகல் எண் (Refractive Index - μ)</label>
+                    <input type="range" class="form-range" id="refIndexSlider" min="1.3" max="1.8" step="0.01" value="1.5">
+                    <div class="d-flex justify-content-between mb-3 text-muted small">
+                        <span data-ta="நீர் (1.33)" data-en="Water (1.33)">நீர் (1.33)</span>
+                        <span class="reading-box text-primary"><span id="refIndexVal">1.50</span></span>
+                        <span data-ta="கண்ணாடி (1.5+)" data-en="Glass (1.5+)">கண்ணாடி (1.5+)</span>
+                    </div>
+
+                    <h5 class="mt-4 border-bottom pb-2" data-ta="முடிவுகள்" data-en="Results">முடிவுகள்</h5>
+                    
+                    <div class="formula-box">
+                        A = 60° (முப்பட்டகக் கோணம்)<br>
+                        d = i + e - A
+                    </div>
+
+                    <p class="mb-1" data-ta="திசைமாற்றுக் கோணம் (Angle of Deviation - d):" data-en="Angle of Deviation (d):">திசைமாற்றுக் கோணம் (Angle of Deviation - d):</p>
+                    <h3 class="text-danger mb-2"><span id="deviationVal">37.2</span>°</h3>
+                    <div id="tirWarning" class="alert alert-danger d-none p-2 text-center small mt-2" data-ta="முழு அக எதிரொளிப்பு நிகழ்கிறது!" data-en="Total Internal Reflection Occurs!">முழு அக எதிரொளிப்பு நிகழ்கிறது!</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('prismCanvas');
+        const ctx = canvas.getContext('2d');
+        const angleISlider = document.getElementById('angleISlider');
+        const refIndexSlider = document.getElementById('refIndexSlider');
+        
+        // Prism geometry (Equilateral triangle)
+        const A_deg = 60;
+        const A_rad = A_deg * Math.PI / 180;
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2 + 50;
+        const sideLength = 200;
+        const height = sideLength * Math.sqrt(3) / 2;
+        
+        // Vertices of the prism
+        const pTop = { x: cx, y: cy - height };
+        const pLeft = { x: cx - sideLength / 2, y: cy };
+        const pRight = { x: cx + sideLength / 2, y: cy };
+
+        function drawPrism() {
+            // Draw Prism
+            ctx.beginPath();
+            ctx.moveTo(pTop.x, pTop.y);
+            ctx.lineTo(pLeft.x, pLeft.y);
+            ctx.lineTo(pRight.x, pRight.y);
+            ctx.closePath();
+            ctx.fillStyle = "rgba(255, 255, 255, 0.1)"; // faint glass look
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "#00ffff"; // Cyan glowing border
+            ctx.stroke();
+        }
+
+        function drawRay() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawPrism();
+
+            let i_deg = parseFloat(angleISlider.value);
+            let mu = parseFloat(refIndexSlider.value);
+            let i_rad = i_deg * Math.PI / 180;
+
+            // Update UI
+            document.getElementById('angleIVal').innerText = i_deg;
+            document.getElementById('refIndexVal').innerText = mu.toFixed(2);
+
+            // Prism left face angle is 60 degrees from horizontal
+            const faceAngleRad = Math.PI / 3; 
+
+            // Intersection point on the left face (midpoint for simplicity)
+            const intersect1 = { 
+                x: (pTop.x + pLeft.x) / 2, 
+                y: (pTop.y + pLeft.y) / 2 
+            };
+
+            // Normal to the left face
+            const normal1Angle = -Math.PI / 6; // Perpendicular to the 60 deg face
+
+            // Incident ray (monochromatic yellow light)
+            const incidentRayAngle = normal1Angle - i_rad;
+            const rayStartX = intersect1.x - 200 * Math.cos(incidentRayAngle);
+            const rayStartY = intersect1.y - 200 * Math.sin(incidentRayAngle);
+
+            ctx.beginPath();
+            ctx.moveTo(rayStartX, rayStartY);
+            ctx.lineTo(intersect1.x, intersect1.y);
+            ctx.strokeStyle = "#f1c40f"; // Yellow ray
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Draw Normal 1 (dashed)
+            ctx.beginPath();
+            ctx.moveTo(intersect1.x - 50 * Math.cos(normal1Angle), intersect1.y - 50 * Math.sin(normal1Angle));
+            ctx.lineTo(intersect1.x + 50 * Math.cos(normal1Angle), intersect1.y + 50 * Math.sin(normal1Angle));
+            ctx.strokeStyle = "#95a5a6";
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Refraction at first surface (Snell's Law: 1 * sin(i) = mu * sin(r1))
+            let r1_rad = Math.asin(Math.sin(i_rad) / mu);
+            
+            // Ray inside prism
+            const refractedRayAngle = normal1Angle - r1_rad;
+            
+            // Find intersection with the right face
+            // Right face goes from pTop to pRight
+            // For an equilateral prism and hitting the midpoint, geometry dictates where it exits.
+            // Simplified geometric intersection for visualizer:
+            let r2_rad = A_rad - r1_rad; // r1 + r2 = A
+            
+            // Refraction at second surface (Snell's law: mu * sin(r2) = 1 * sin(e))
+            let sin_e = mu * Math.sin(r2_rad);
+            
+            let tirWarning = document.getElementById('tirWarning');
+            let devText = document.getElementById('deviationVal');
+
+            if (Math.abs(sin_e) > 1) {
+                // Total Internal Reflection inside the prism
+                tirWarning.classList.remove('d-none');
+                devText.innerText = "-";
+                
+                // Draw internal reflected ray (rough visual estimation)
+                ctx.beginPath();
+                ctx.moveTo(intersect1.x, intersect1.y);
+                ctx.lineTo(intersect1.x + 100, intersect1.y + 100);
+                ctx.strokeStyle = "#e74c3c"; // Turn red to show failure to emerge
+                ctx.stroke();
+
+            } else {
+                // Light emerges successfully
+                tirWarning.classList.add('d-none');
+                let e_rad = Math.asin(sin_e);
+                
+                // Calculate angle of deviation (d = i + e - A)
+                let d_rad = i_rad + e_rad - A_rad;
+                let d_deg = d_rad * 180 / Math.PI;
+                devText.innerText = d_deg.toFixed(1);
+
+                // Calculate exit point on the right face
+                // Distance from top vertex to intersect1 is sideLength/2
+                // Using sine rule in the upper triangle formed by the ray:
+                let distToIntersect2 = (sideLength / 2) * Math.sin(Math.PI/2 - r1_rad) / Math.sin(Math.PI/2 + r1_rad - A_rad);
+                
+                const intersect2 = {
+                    x: pTop.x + distToIntersect2 * Math.cos(-Math.PI/3),
+                    y: pTop.y - distToIntersect2 * Math.sin(-Math.PI/3) // y is down
+                };
+
+                // Draw ray inside prism
+                ctx.beginPath();
+                ctx.moveTo(intersect1.x, intersect1.y);
+                ctx.lineTo(intersect2.x, intersect2.y);
+                ctx.strokeStyle = "#f1c40f";
+                ctx.stroke();
+
+                // Normal 2
+                const normal2Angle = Math.PI + Math.PI / 6; 
+                ctx.beginPath();
+                ctx.moveTo(intersect2.x - 50 * Math.cos(normal2Angle), intersect2.y - 50 * Math.sin(normal2Angle));
+                ctx.lineTo(intersect2.x + 50 * Math.cos(normal2Angle), intersect2.y + 50 * Math.sin(normal2Angle));
+                ctx.strokeStyle = "#95a5a6";
+                ctx.setLineDash([5, 5]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Emergent ray
+                const emergentRayAngle = normal2Angle + e_rad;
+                ctx.beginPath();
+                ctx.moveTo(intersect2.x, intersect2.y);
+                ctx.lineTo(intersect2.x + 150 * Math.cos(emergentRayAngle), intersect2.y + 150 * Math.sin(emergentRayAngle));
+                ctx.stroke();
+            }
+        }
+
+        angleISlider.addEventListener('input', drawRay);
+        refIndexSlider.addEventListener('input', drawRay);
+
+        // Language Toggle
+        let currentLang = 'ta';
+        function toggleLanguage() {
+            currentLang = currentLang === 'ta' ? 'en' : 'ta';
+            document.getElementById('langToggleBtn').innerText = currentLang === 'ta' ? 'English' : 'தமிழ்';
+            const elements = document.querySelectorAll('[data-ta]');
+            elements.forEach(el => { el.innerText = el.getAttribute(`data-${currentLang}`); });
+        }
+
+        // Init
+        drawRay();
+    </script>
+</body>
+  </html>
