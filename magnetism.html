@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magnetism | காந்தவிசை</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; }
+        .header-bar { background-color: #003366; color: white; padding: 15px 0; }
+        .canvas-container {
+            background-color: #ffffff;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        canvas {
+            background-color: #f1f2f6;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            max-width: 100%;
+            height: auto;
+        }
+        .control-panel { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .reading-box { font-size: 1.2rem; font-weight: bold; color: #003366; }
+        
+        .btn-flip {
+            background: linear-gradient(to right, #e74c3c 50%, #3498db 50%);
+            color: white;
+            border: 2px solid #2c3e50;
+            font-weight: bold;
+            transition: transform 0.3s;
+        }
+        .btn-flip:hover { transform: scale(1.05); color: white; }
+        
+        .status-badge { font-size: 1.3rem; padding: 12px; width: 100%; border-radius: 8px; }
+        .attract { background-color: #2ecc71; color: white; box-shadow: 0 0 15px rgba(46, 204, 113, 0.5); }
+        .repel { background-color: #e67e22; color: white; box-shadow: 0 0 15px rgba(230, 126, 34, 0.5); }
+    </style>
+</head>
+<body>
+
+    <div class="header-bar text-center shadow-sm mb-4">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a href="physicslab.html" class="btn btn-outline-light btn-sm" data-ta="< பின்செல்ல" data-en="< Back"> < பின்செல்ல </a>
+            <h3 class="m-0" data-ta="காந்தவிசை (Magnetism)" data-en="Magnetism Simulator">காந்தவிசை (Magnetism)</h3>
+            <button id="langToggleBtn" class="btn btn-warning btn-sm fw-bold" onclick="toggleLanguage()">English</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="canvas-container">
+                    <h5 class="mb-3 text-secondary" data-ta="காந்தப்புலம் (Magnetic Field)" data-en="Magnetic Field">காந்தப்புலம் (Magnetic Field)</h5>
+                    <canvas id="magnetCanvas" width="700" height="350"></canvas>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="control-panel">
+                    <h4 class="mb-3 border-bottom pb-2" data-ta="கட்டுப்பாடுகள்" data-en="Controls">கட்டுப்பாடுகள்</h4>
+                    
+                    <label class="form-label fw-bold" data-ta="இடைவெளி (Distance)" data-en="Distance">இடைவெளி (Distance)</label>
+                    <input type="range" class="form-range" id="distanceSlider" min="50" max="300" step="1" value="250">
+                    <div class="d-flex justify-content-between mb-4 text-muted small">
+                        <span data-ta="அருகில்" data-en="Close">அருகில்</span>
+                        <span data-ta="தொலைவில்" data-en="Far">தொலைவில்</span>
+                    </div>
+
+                    <div class="d-grid gap-2 mb-4">
+                        <button class="btn btn-flip btn-lg" onclick="flipMagnet()" data-ta="🔄 வலது காந்தத்தை திருப்பு (Flip)" data-en="🔄 Flip Right Magnet">🔄 வலது காந்தத்தை திருப்பு (Flip)</button>
+                    </div>
+
+                    <h5 class="mt-4 border-bottom pb-2" data-ta="விளைவு (Result)" data-en="Result">விளைவு (Result)</h5>
+                    
+                    <div id="statusBox" class="status-badge text-center attract mt-3">
+                        <span id="statusIcon">🧲</span> <span id="statusText" data-ta="ஈர்ப்பு விசை (Attraction)" data-en="Attraction!">ஈர்ப்பு விசை (Attraction)</span>
+                    </div>
+                    
+                    <p class="text-muted small mt-3 text-center" id="ruleText" data-ta="எதிர் எதிர் துருவங்கள் ஈர்க்கும் (N - S)." data-en="Opposite poles attract each other (N - S).">
+                        எதிர் எதிர் துருவங்கள் ஈர்க்கும் (N - S).
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('magnetCanvas');
+        const ctx = canvas.getContext('2d');
+        const distanceSlider = document.getElementById('distanceSlider');
+        
+        // Magnet dimensions
+        const magWidth = 140;
+        const magHeight = 60;
+        const cy = canvas.height / 2;
+        
+        // Left magnet is fixed
+        const leftMagX = 150; 
+        // Right magnet is movable and flippable
+        let isRightFlipped = false; 
+
+        function drawMagnet(x, y, isFlipped) {
+            const radius = 5;
+            
+            // Draw North Pole (Red)
+            ctx.fillStyle = isFlipped ? "#3498db" : "#e74c3c"; // Blue if flipped, else Red
+            ctx.beginPath();
+            ctx.roundRect(x - magWidth/2, y - magHeight/2, magWidth/2, magHeight, isFlipped ? [0, 0, 0, 0] : [radius, 0, 0, radius]);
+            ctx.fill();
+            ctx.stroke();
+
+            // Draw South Pole (Blue)
+            ctx.fillStyle = isFlipped ? "#e74c3c" : "#3498db"; // Red if flipped, else Blue
+            ctx.beginPath();
+            ctx.roundRect(x, y - magHeight/2, magWidth/2, magHeight, isFlipped ? [0, radius, radius, 0] : [0, radius, radius, 0]);
+            ctx.fill();
+            ctx.stroke();
+
+            // Add Text Labels
+            ctx.fillStyle = "white";
+            ctx.font = "bold 24px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(isFlipped ? "S" : "N", x - magWidth/4, y);
+            ctx.fillText(isFlipped ? "N" : "S", x + magWidth/4, y);
+        }
+
+        function drawForceLines(rightMagX, isAttracting) {
+            const gapStart = leftMagX + magWidth/2;
+            const gapEnd = rightMagX - magWidth/2;
+            const gapDistance = gapEnd - gapStart;
+
+            if (gapDistance > 280) return; // Too far for visible lines
+
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "rgba(100, 100, 100, 0.5)";
+            
+            // Number of lines to draw
+            const numLines = 5;
+            const ySpacing = magHeight / (numLines + 1);
+
+            for (let i = 1; i <= numLines; i++) {
+                let startY = cy - magHeight/2 + (i * ySpacing);
+                
+                ctx.beginPath();
+                ctx.moveTo(gapStart, startY);
+
+                if (isAttracting) {
+                    // Straight lines connecting the poles
+                    ctx.lineTo(gapEnd, startY);
+                    
+                    // Draw arrow heads pointing right
+                    if (gapDistance > 40) {
+                        ctx.lineTo(gapEnd - 10, startY - 5);
+                        ctx.moveTo(gapEnd, startY);
+                        ctx.lineTo(gapEnd - 10, startY + 5);
+                    }
+                } else {
+                    // Repulsion: Curves bending upwards and downwards
+                    let curveIntensity = (300 - gapDistance) / 2;
+                    if (i <= 2) { // Top lines bend up
+                        ctx.quadraticCurveTo(gapStart + gapDistance/2, startY - curveIntensity, gapStart + gapDistance/2, startY - curveIntensity - 50);
+                    } else if (i >= 4) { // Bottom lines bend down
+                        ctx.quadraticCurveTo(gapStart + gapDistance/2, startY + curveIntensity, gapStart + gapDistance/2, startY + curveIntensity + 50);
+                    } else { // Middle line pushes straight up/down tightly
+                        ctx.moveTo(gapStart, startY);
+                        ctx.quadraticCurveTo(gapStart + gapDistance/4, startY, gapStart + gapDistance/2, cy - 80);
+                    }
+                    
+                    // Mirror for right magnet
+                    ctx.moveTo(gapEnd, startY);
+                    if (i <= 2) {
+                        ctx.quadraticCurveTo(gapEnd - gapDistance/2, startY - curveIntensity, gapEnd - gapDistance/2, startY - curveIntensity - 50);
+                    } else if (i >= 4) {
+                        ctx.quadraticCurveTo(gapEnd - gapDistance/2, startY + curveIntensity, gapEnd - gapDistance/2, startY + curveIntensity + 50);
+                    } else {
+                        ctx.quadraticCurveTo(gapEnd - gapDistance/4, startY, gapEnd - gapDistance/2, cy - 80);
+                    }
+                }
+                ctx.stroke();
+            }
+        }
+
+        function drawScene() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            let distance = parseInt(distanceSlider.value);
+            let rightMagX = leftMagX + magWidth + distance;
+
+            // Logic: Left magnet right pole is always 'S'. 
+            // Right magnet left pole is 'N' (if not flipped) or 'S' (if flipped).
+            let isAttracting = !isRightFlipped; // S and N attract
+
+            // Snap effect if they get too close and are attracting
+            if (isAttracting && distance < 60) {
+                rightMagX = leftMagX + magWidth + 5; // Snap together with tiny gap
+                distanceSlider.value = 5; // Force slider to match
+            }
+            
+            // Push back effect if repelling and forcing them too close
+            if (!isAttracting && distance < 60) {
+                rightMagX = leftMagX + magWidth + 60; // Force them apart
+                distanceSlider.value = 60;
+            }
+
+            // Draw elements
+            drawForceLines(rightMagX, isAttracting);
+            drawMagnet(leftMagX, cy, false); // Fixed Left Magnet
+            drawMagnet(rightMagX, cy, isRightFlipped); // Movable Right Magnet
+
+            // Update UI Status
+            const statusBox = document.getElementById('statusBox');
+            const statusText = document.getElementById('statusText');
+            const ruleText = document.getElementById('ruleText');
+
+            if (isAttracting) {
+                statusBox.className = "status-badge text-center attract mt-3";
+                statusText.innerText = currentLang === 'ta' ? "ஈர்ப்பு விசை (Attraction)" : "Attraction!";
+                ruleText.innerText = currentLang === 'ta' ? "எதிர் எதிர் துருவங்கள் ஈர்க்கும் (N - S)." : "Opposite poles attract each other (N - S).";
+            } else {
+                statusBox.className = "status-badge text-center repel mt-3";
+                statusText.innerText = currentLang === 'ta' ? "விலக்கு விசை (Repulsion)" : "Repulsion!";
+                ruleText.innerText = currentLang === 'ta' ? "ஒரே துருவங்கள் விலக்கும் (S - S)." : "Like poles repel each other (S - S).";
+            }
+        }
+
+        function flipMagnet() {
+            isRightFlipped = !isRightFlipped;
+            // Push magnet back a little bit to show the flip clearly if they are snapped together
+            if (parseInt(distanceSlider.value) < 100) {
+                distanceSlider.value = 150;
+            }
+            drawScene();
+        }
+
+        distanceSlider.addEventListener('input', drawScene);
+
+        // Language Toggle Logic
+        let currentLang = 'ta';
+        function toggleLanguage() {
+            currentLang = currentLang === 'ta' ? 'en' : 'ta';
+            document.getElementById('langToggleBtn').innerText = currentLang === 'ta' ? 'English' : 'தமிழ்';
+            const elements = document.querySelectorAll('[data-ta]');
+            elements.forEach(el => { el.innerText = el.getAttribute(`data-${currentLang}`); });
+            drawScene(); // Refresh dynamic text inside the canvas/status
+        }
+
+        // Initialize
+        drawScene();
+    </script>
+</body>
+          </html>
