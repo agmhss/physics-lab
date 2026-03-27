@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Light & Colors | ஒளியும் நிறங்களும்</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; }
+        .header-bar { background-color: #003366; color: white; padding: 15px 0; }
+        
+        .stage-container {
+            background-color: #000000; /* Dark room for lights */
+            border-radius: 15px;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.8), 0 4px 10px rgba(0,0,0,0.1);
+            position: relative;
+            height: 450px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* The Spotlights */
+        .spotlight {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            position: absolute;
+            mix-blend-mode: screen; /* This is the magic that mixes light properly! */
+            filter: blur(8px);
+            transition: background-color 0.2s;
+        }
+
+        #lightRed { transform: translate(-50px, -40px); background-color: rgb(255, 0, 0); }
+        #lightGreen { transform: translate(50px, -40px); background-color: rgb(0, 255, 0); }
+        #lightBlue { transform: translate(0, 60px); background-color: rgb(0, 0, 255); }
+
+        .control-panel { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        
+        /* Custom Sliders */
+        input[type=range].slider-red::-webkit-slider-thumb { background: red; }
+        input[type=range].slider-green::-webkit-slider-thumb { background: green; }
+        input[type=range].slider-blue::-webkit-slider-thumb { background: blue; }
+        
+        .color-badge { width: 30px; height: 30px; border-radius: 50%; display: inline-block; vertical-align: middle; border: 2px solid #ccc; }
+    </style>
+</head>
+<body>
+
+    <div class="header-bar text-center shadow-sm mb-4">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a href="physicslab.html" class="btn btn-outline-light btn-sm" data-ta="< பின்செல்ல" data-en="< Back"> < பின்செல்ல </a>
+            <h3 class="m-0" data-ta="ஒளியும் நிறங்களும் (Light & Colors)" data-en="Light & Colors Simulator">ஒளியும் நிறங்களும் (Light & Colors)</h3>
+            <button id="langToggleBtn" class="btn btn-warning btn-sm fw-bold" onclick="toggleLanguage()">English</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-7">
+                <div class="stage-container shadow">
+                    <div id="lightRed" class="spotlight"></div>
+                    <div id="lightGreen" class="spotlight"></div>
+                    <div id="lightBlue" class="spotlight"></div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="control-panel">
+                    <h4 class="mb-3 border-bottom pb-2" data-ta="ஒளியைக் கலக்கவும்!" data-en="Mix the Lights!">ஒளியைக் கலக்கவும்!</h4>
+                    
+                    <p class="text-muted small mb-4" data-ta="வண்ண ஒளியை (RGB) ஒன்றுசேர்க்கும் போது புதிய நிறங்கள் உருவாகின்றன. அனைத்தையும் சேர்த்தால் வெள்ளை நிறம் கிடைக்கும்!" data-en="Mixing colored light (RGB) creates new colors. Mix them all to get white light!">
+                        வண்ண ஒளியை (RGB) ஒன்றுசேர்க்கும் போது புதிய நிறங்கள் உருவாகின்றன. அனைத்தையும் சேர்த்தால் வெள்ளை நிறம் கிடைக்கும்!
+                    </p>
+
+                    <label class="form-label fw-bold text-danger" data-ta="சிவப்பு (Red)" data-en="Red">சிவப்பு (Red)</label>
+                    <input type="range" class="form-range slider-red" id="redSlider" min="0" max="255" step="1" value="255">
+                    
+                    <label class="form-label fw-bold text-success mt-3" data-ta="பச்சை (Green)" data-en="Green">பச்சை (Green)</label>
+                    <input type="range" class="form-range slider-green" id="greenSlider" min="0" max="255" step="1" value="255">
+                    
+                    <label class="form-label fw-bold text-primary mt-3" data-ta="நீலம் (Blue)" data-en="Blue">நீலம் (Blue)</label>
+                    <input type="range" class="form-range slider-blue" id="blueSlider" min="0" max="255" step="1" value="255">
+
+                    <h5 class="mt-4 border-bottom pb-2" data-ta="மைய நிறம் (Center Color)" data-en="Center Color">மைய நிறம் (Center Color)</h5>
+                    <div class="d-flex align-items-center mb-3">
+                        <div id="centerColorPreview" class="color-badge me-3" style="background-color: white;"></div>
+                        <h3 class="m-0" id="colorName" data-ta="வெள்ளை (White)" data-en="White">வெள்ளை (White)</h3>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-block mt-4">
+                        <button class="btn btn-outline-dark btn-sm me-1 mb-1" onclick="setColors(255, 255, 0)" data-ta="மஞ்சள் உருவாக்கு" data-en="Make Yellow">மஞ்சள் உருவாக்கு</button>
+                        <button class="btn btn-outline-dark btn-sm me-1 mb-1" onclick="setColors(0, 255, 255)" data-ta="சியான் உருவாக்கு" data-en="Make Cyan">சியான் உருவாக்கு</button>
+                        <button class="btn btn-outline-dark btn-sm me-1 mb-1" onclick="setColors(255, 0, 255)" data-ta="மெஜந்தா உருவாக்கு" data-en="Make Magenta">மெஜந்தா உருவாக்கு</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const redSlider = document.getElementById('redSlider');
+        const greenSlider = document.getElementById('greenSlider');
+        const blueSlider = document.getElementById('blueSlider');
+        
+        const lightRed = document.getElementById('lightRed');
+        const lightGreen = document.getElementById('lightGreen');
+        const lightBlue = document.getElementById('lightBlue');
+        
+        const centerPreview = document.getElementById('centerColorPreview');
+        const colorNameText = document.getElementById('colorName');
+
+        function updateLights() {
+            let r = parseInt(redSlider.value);
+            let g = parseInt(greenSlider.value);
+            let b = parseInt(blueSlider.value);
+
+            // Update spotlights
+            lightRed.style.backgroundColor = `rgb(${r}, 0, 0)`;
+            lightGreen.style.backgroundColor = `rgb(0, ${g}, 0)`;
+            lightBlue.style.backgroundColor = `rgb(0, 0, ${b})`;
+
+            // Update Center Preview Box
+            centerPreview.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+
+            // Determine Color Name (Simplified for Kids)
+            let colorNameEn = "Mixed Color";
+            let colorNameTa = "கலப்பு நிறம்";
+
+            if (r > 200 && g > 200 && b > 200) { colorNameEn = "White"; colorNameTa = "வெள்ளை (White)"; }
+            else if (r < 50 && g < 50 && b < 50) { colorNameEn = "Black (No Light)"; colorNameTa = "கருப்பு (ஒளி இல்லை)"; }
+            else if (r > 200 && g > 200 && b < 50) { colorNameEn = "Yellow"; colorNameTa = "மஞ்சள் (Yellow)"; }
+            else if (r > 200 && b > 200 && g < 50) { colorNameEn = "Magenta"; colorNameTa = "மெஜந்தா (Magenta)"; }
+            else if (g > 200 && b > 200 && r < 50) { colorNameEn = "Cyan"; colorNameTa = "சியான் (Cyan)"; }
+            else if (r > 200 && g < 100 && b < 100) { colorNameEn = "Red"; colorNameTa = "சிவப்பு (Red)"; }
+            else if (g > 200 && r < 100 && b < 100) { colorNameEn = "Green"; colorNameTa = "பச்சை (Green)"; }
+            else if (b > 200 && r < 100 && g < 100) { colorNameEn = "Blue"; colorNameTa = "நீலம் (Blue)"; }
+
+            colorNameText.innerText = currentLang === 'ta' ? colorNameTa : colorNameEn;
+        }
+
+        // Helper function for magic preset buttons
+        function setColors(r, g, b) {
+            redSlider.value = r;
+            greenSlider.value = g;
+            blueSlider.value = b;
+            updateLights();
+        }
+
+        // Event Listeners
+        redSlider.addEventListener('input', updateLights);
+        greenSlider.addEventListener('input', updateLights);
+        blueSlider.addEventListener('input', updateLights);
+
+        // Language Toggle Logic
+        let currentLang = 'ta';
+        function toggleLanguage() {
+            currentLang = currentLang === 'ta' ? 'en' : 'ta';
+            document.getElementById('langToggleBtn').innerText = currentLang === 'ta' ? 'English' : 'தமிழ்';
+            const elements = document.querySelectorAll('[data-ta]');
+            elements.forEach(el => { el.innerText = el.getAttribute(`data-${currentLang}`); });
+            updateLights(); // Refresh the color name text based on language
+        }
+
+        // Initialize
+        updateLights();
+    </script>
+</body>
+                          </html>
