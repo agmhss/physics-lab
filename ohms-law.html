@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ohm's Law | ஓம் விதி</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; }
+        .header-bar { background-color: #003366; color: white; padding: 15px 0; }
+        .circuit-container {
+            background-color: #2c3e50;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        #bulb {
+            width: 100px;
+            height: 100px;
+            background-color: #555;
+            border-radius: 50%;
+            margin: 0 auto;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 0px rgba(255, 255, 0, 0);
+        }
+        .control-panel { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .reading-box { font-size: 1.5rem; font-weight: bold; color: #003366; }
+    </style>
+</head>
+<body>
+
+    <div class="header-bar text-center shadow-sm mb-4">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a href="physicslab.html" class="btn btn-outline-light btn-sm" data-ta="< பின்செல்ல" data-en="< Back"> < பின்செல்ல </a>
+            <h3 class="m-0" data-ta="ஓம் விதி (Ohm's Law)" data-en="Ohm's Law Simulator">ஓம் விதி (Ohm's Law)</h3>
+            <button id="langToggleBtn" class="btn btn-warning btn-sm fw-bold" onclick="toggleLanguage()">English</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-7">
+                <div class="circuit-container shadow">
+                    <h5 class="text-white mb-4" data-ta="மின்சுற்று மாதிரி" data-en="Circuit Visual">மின்சுற்று மாதிரி</h5>
+                    <div id="bulb"></div>
+                    <div class="mt-4 text-white">
+                        <span data-ta="மின்னோட்டம் (Current): " data-en="Current: ">மின்னோட்டம் (Current): </span>
+                        <span id="currentDisplayVisual" class="fs-4 fw-bold text-warning">0.00 A</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-5">
+                <div class="control-panel">
+                    <h4 class="mb-4 border-bottom pb-2" data-ta="கட்டுப்பாடுகள்" data-en="Controls">கட்டுப்பாடுகள்</h4>
+                    
+                    <label class="form-label" data-ta="மின்னழுத்தம் (Voltage - V)" data-en="Voltage (V)">மின்னழுத்தம் (Voltage - V)</label>
+                    <input type="range" class="form-range" id="voltageSlider" min="0" max="24" step="1" value="0">
+                    <div class="d-flex justify-content-between mb-4">
+                        <span class="text-muted">0 V</span>
+                        <span class="reading-box"><span id="voltageVal">0</span> V</span>
+                        <span class="text-muted">24 V</span>
+                    </div>
+
+                    <label class="form-label" data-ta="மின்தடை (Resistance - R)" data-en="Resistance (R)">மின்தடை (Resistance - R)</label>
+                    <input type="range" class="form-range" id="resistanceSlider" min="1" max="100" step="1" value="50">
+                    <div class="d-flex justify-content-between mb-4">
+                        <span class="text-muted">1 Ω</span>
+                        <span class="reading-box"><span id="resistanceVal">50</span> Ω</span>
+                        <span class="text-muted">100 Ω</span>
+                    </div>
+
+                    <div class="alert alert-info text-center mt-4">
+                        <h5 class="mb-0">I = V / R</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Physics Logic
+        const voltageSlider = document.getElementById('voltageSlider');
+        const resistanceSlider = document.getElementById('resistanceSlider');
+        const bulb = document.getElementById('bulb');
+        
+        function calculateOhm() {
+            let v = parseFloat(voltageSlider.value);
+            let r = parseFloat(resistanceSlider.value);
+            
+            // Calculate Current (I = V/R)
+            let i = v / r;
+            let currentFormatted = i.toFixed(2);
+            
+            // Update UI Texts
+            document.getElementById('voltageVal').innerText = v;
+            document.getElementById('resistanceVal').innerText = r;
+            document.getElementById('currentDisplayVisual').innerText = currentFormatted + " A";
+
+            // Update Bulb Visuals (Max current in this setup is 24/1 = 24A. We map this to brightness)
+            // Cap the brightness glow for visual safety
+            let glowIntensity = Math.min((i / 5) * 100, 100); 
+            let bulbColor = i > 0 ? `rgb(255, 255, ${255 - glowIntensity})` : '#555';
+            
+            bulb.style.backgroundColor = bulbColor;
+            bulb.style.boxShadow = i > 0 ? `0 0 ${glowIntensity * 2}px ${glowIntensity / 2}px rgba(255, 255, 0, 0.8)` : 'none';
+        }
+
+        // Event Listeners for sliders
+        voltageSlider.addEventListener('input', calculateOhm);
+        resistanceSlider.addEventListener('input', calculateOhm);
+
+        // Language Toggle Logic
+        let currentLang = 'ta';
+        function toggleLanguage() {
+            currentLang = currentLang === 'ta' ? 'en' : 'ta';
+            document.getElementById('langToggleBtn').innerText = currentLang === 'ta' ? 'English' : 'தமிழ்';
+            const elements = document.querySelectorAll('[data-ta]');
+            elements.forEach(el => { el.innerText = el.getAttribute(`data-${currentLang}`); });
+        }
+
+        // Initialize on load
+        calculateOhm();
+    </script>
+</body>
+</html>
